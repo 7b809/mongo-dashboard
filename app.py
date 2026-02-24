@@ -50,12 +50,11 @@ def login_required(f):
 
         login_time = session.get("login_time")
         if login_time:
-            elapsed = (datetime.utcnow() - login_time).total_seconds()
+            elapsed = datetime.utcnow().timestamp() - login_time
             if elapsed > SESSION_TIMEOUT_MINUTES * 60:
                 session.clear()
                 return jsonify({"error": "Session expired"}), 401
-
-        return f(*args, **kwargs)
+            
     return decorated
 
 
@@ -65,7 +64,7 @@ def login():
 
     if password == ADMIN_PASSWORD:
         session["authenticated"] = True
-        session["login_time"] = datetime.utcnow()
+        session["login_time"] = datetime.utcnow().timestamp()
         return jsonify({"success": True})
 
     return jsonify({"error": "Invalid password"}), 401
