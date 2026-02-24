@@ -1,4 +1,3 @@
-
 const databasesList = document.getElementById("databasesList");
 const collectionsList = document.getElementById("collectionsList");
 const refreshDatabases = document.getElementById("refreshDatabases");
@@ -13,6 +12,27 @@ const pageIndicator = document.getElementById("pageIndicator");
 const countInfo = document.getElementById("countInfo");
 const limitSelect = document.getElementById("limitSelect");
 
+// NEW ELEMENTS
+const loginModal = document.getElementById("loginModal");
+const loginBtn = document.getElementById("loginBtn");
+const passwordInput = document.getElementById("passwordInput");
+const loginError = document.getElementById("loginError");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const deleteDatabaseBtn = document.getElementById("deleteDatabaseBtn");
+const deleteCollectionBtn = document.getElementById("deleteCollectionBtn");
+
+const confirmModalEl = document.getElementById("confirmModal");
+const confirmMessage = document.getElementById("confirmMessage");
+const confirmInput = document.getElementById("confirmInput");
+const confirmActionBtn = document.getElementById("confirmActionBtn");
+const confirmError = document.getElementById("confirmError");
+
+let confirmModal;
+if (confirmModalEl) {
+  confirmModal = new bootstrap.Modal(confirmModalEl);
+}
+
 let state = {
   db: (typeof window !== 'undefined' && window.DEFAULT_DB) ? window.DEFAULT_DB : null,
   collection: null,
@@ -22,14 +42,63 @@ let state = {
   totalCount: 0
 };
 
-async function fetchJSON(url) {
-  const res = await fetch(url);
+let pendingConfirmAction = null;
+
+async function fetchJSON(url, options = {}) {
+  const res = await fetch(url, options);
+
+  if (res.status === 401) {
+    showLogin();
+    throw new Error("Unauthorized");
+  }
+
   if (!res.ok) {
     let msg = await res.text();
     try { const j = JSON.parse(msg); msg = j.error || msg; } catch {}
     throw new Error(msg || `HTTP ${res.status}`);
   }
+
   return res.json();
+}
+
+function showLogin() {
+  if (loginModal) {
+    loginModal.style.display = "block";
+  }
+}
+
+function hideLogin() {
+  if (loginModal) {
+    loginModal.style.display = "none";
+  }
+}
+
+if (loginBtn) {
+  loginBtn.addEventListener("click", async () => {
+    const password = passwordInput.value;
+
+    try {
+      await fetchJSON("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+
+      loginError.textContent = "";
+      hideLogin();
+      loadDatabases();
+
+    } catch (e) {
+      loginError.textContent = "Invalid password";
+    }
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await fetch("/logout", { method: "POST" });
+    location.reload();
+  });
 }
 
 function setActiveBadges() {
@@ -57,7 +126,7 @@ async function loadDatabases() {
         state.collection = null;
         state.page = 1;
         setActiveBadges();
-        renderCollections([]); // clear collections
+        renderCollections([]);
         loadCollections();
         document.querySelectorAll("#databasesList .list-group-item").forEach(el => el.classList.remove("active"));
         btn.classList.add("active");
@@ -65,7 +134,6 @@ async function loadDatabases() {
       };
       databasesList.appendChild(btn);
       if (!defaultAutoClicked && state.db && state.db === name) {
-        // Auto-select default DB if provided
         btn.click();
         defaultAutoClicked = true;
       }
@@ -122,7 +190,7 @@ function buildTable(docs) {
   if (!docs.length) {
     return `<div class="p-4 text-muted">No documents found.</div>`;
   }
-  // Gather column keys (union across docs; stable order, _id first)
+
   const keySet = new Set();
   docs.forEach(d => Object.keys(d).forEach(k => keySet.add(k)));
   const keys = Array.from(keySet);
@@ -130,18 +198,26 @@ function buildTable(docs) {
 
   const thead = `
     <thead class="table-light">
-      <tr>${keys.map(k => `<th scope="col" class="text-nowrap">${k}</th>`).join("")}</tr>
+      <tr>
+        ${keys.map(k => `<th scope="col" class="text-nowrap">${k}</th>`).join("")}
+        <th>Actions</th>
+      </tr>
     </thead>
   `;
+
   const tbody = `
     <tbody>
       ${docs.map(doc => `
         <tr>
           ${keys.map(k => `<td>${valueToCell(doc[k])}</td>`).join("")}
+          <td>
+            <button class="btn btn-sm btn-outline-danger delete-doc" data-id="${doc._id}">Delete</button>
+          </td>
         </tr>
       `).join("")}
     </tbody>
   `;
+
   return `<table class="table table-sm table-hover mb-0">${thead}${tbody}</table>`;
 }
 
@@ -150,9 +226,11 @@ async function loadDocs() {
     tableContainer.innerHTML = `<div class="p-4 text-muted">Select a collection to view documents.</div>`;
     return;
   }
+
   setActiveBadges();
+
   const url = `/api/docs?db=${encodeURIComponent(state.db)}&collection=${encodeURIComponent(state.collection)}&page=${state.page}&limit=${state.limit}`;
-  tableContainer.innerHTML = `<div class="spinner-border m-4" role="status"><span class="visually-hidden">Loading…</span></div>`;
+  tableContainer.innerHTML = `<div class="spinner-border m-4"></div>`;
 
   try {
     const data = await fetchJSON(url);
@@ -160,6 +238,7 @@ async function loadDocs() {
     state.totalPages = data.total_pages || 1;
     state.totalCount = data.total_count || 0;
     state.page = data.page || 1;
+
     tableContainer.innerHTML = buildTable(docs);
 
     pageIndicator.textContent = `Page ${state.page} of ${state.totalPages}`;
@@ -169,14 +248,118 @@ async function loadDocs() {
 
     prevBtn.disabled = state.page <= 1;
     nextBtn.disabled = state.page >= state.totalPages;
+
   } catch (e) {
     tableContainer.innerHTML = `<div class="p-4 text-danger small">Error: ${e.message}</div>`;
-    pageIndicator.textContent = "Page — of —";
-    countInfo.textContent = "—";
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
   }
 }
+
+/* ================= DELETE LOGIC ================= */
+
+document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("delete-doc")) {
+    const id = e.target.dataset.id;
+
+    confirmMessage.textContent = "Are you sure you want to delete this document?";
+    confirmInput.classList.add("d-none");
+    confirmError.textContent = "";
+
+    pendingConfirmAction = async () => {
+      await fetchJSON("/api/delete_doc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          db: state.db,
+          collection: state.collection,
+          id
+        })
+      });
+      loadDocs();
+    };
+
+    confirmModal.show();
+  }
+});
+
+if (deleteCollectionBtn) {
+  deleteCollectionBtn.addEventListener("click", () => {
+    if (!state.collection) return;
+
+    confirmMessage.innerHTML = `Type <strong>${state.collection}</strong> to confirm deletion.`;
+    confirmInput.classList.remove("d-none");
+    confirmInput.value = "";
+    confirmError.textContent = "";
+
+    pendingConfirmAction = async () => {
+      if (confirmInput.value !== state.collection) {
+        confirmError.textContent = "Name does not match.";
+        return;
+      }
+
+      await fetchJSON("/api/delete_collection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          db: state.db,
+          collection: state.collection,
+          confirm: confirmInput.value
+        })
+      });
+
+      state.collection = null;
+      loadCollections();
+      tableContainer.innerHTML = `<div class="p-4 text-muted">Collection deleted.</div>`;
+      confirmModal.hide();
+    };
+
+    confirmModal.show();
+  });
+}
+
+if (deleteDatabaseBtn) {
+  deleteDatabaseBtn.addEventListener("click", () => {
+    if (!state.db) return;
+
+    confirmMessage.innerHTML = `Type <strong>${state.db}</strong> to confirm deletion.`;
+    confirmInput.classList.remove("d-none");
+    confirmInput.value = "";
+    confirmError.textContent = "";
+
+    pendingConfirmAction = async () => {
+      if (confirmInput.value !== state.db) {
+        confirmError.textContent = "Name does not match.";
+        return;
+      }
+
+      await fetchJSON("/api/delete_database", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          db: state.db,
+          confirm: confirmInput.value
+        })
+      });
+
+      state.db = null;
+      state.collection = null;
+      loadDatabases();
+      tableContainer.innerHTML = `<div class="p-4 text-muted">Database deleted.</div>`;
+      confirmModal.hide();
+    };
+
+    confirmModal.show();
+  });
+}
+
+if (confirmActionBtn) {
+  confirmActionBtn.addEventListener("click", async () => {
+    if (pendingConfirmAction) {
+      await pendingConfirmAction();
+    }
+  });
+}
+
+/* ================= PAGINATION ================= */
 
 prevBtn.addEventListener("click", () => {
   if (state.page > 1) {
