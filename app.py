@@ -7,6 +7,7 @@ from bson import ObjectId
 from dotenv import load_dotenv
 from functools import wraps
 import secrets
+from datetime import datetime, timezone
 
 # Load .env for local dev. In Vercel, env vars come from the dashboard.
 load_dotenv()
@@ -33,7 +34,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=not app.debug,  # Secure only in production
     PERMANENT_SESSION_LIFETIME=timedelta(minutes=SESSION_TIMEOUT_MINUTES)
 )
 
@@ -45,16 +46,20 @@ app.config.update(
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+
         if not session.get("authenticated"):
             return jsonify({"error": "Unauthorized"}), 401
 
         login_time = session.get("login_time")
         if login_time:
-            elapsed = datetime.utcnow().timestamp() - login_time
+            elapsed = datetime.now().timestamp() - login_time
             if elapsed > SESSION_TIMEOUT_MINUTES * 60:
                 session.clear()
                 return jsonify({"error": "Session expired"}), 401
-            
+
+        # 🔥 THIS LINE WAS MISSING
+        return f(*args, **kwargs)
+
     return decorated
 
 
@@ -64,7 +69,8 @@ def login():
 
     if password == ADMIN_PASSWORD:
         session["authenticated"] = True
-        session["login_time"] = datetime.utcnow().timestamp()
+
+        session["login_time"] = datetime.now(timezone.utc).timestamp()
         return jsonify({"success": True})
 
     return jsonify({"error": "Invalid password"}), 401
@@ -226,4 +232,4 @@ def delete_database():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
