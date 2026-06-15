@@ -3,6 +3,331 @@ code.small {
   white-space: pre-wrap;
 }
 
+/* =======================================================
+   GLOBAL
+======================================================= */
+
+body.dashboard-body {
+    background: linear-gradient(
+        135deg,
+        #eef2ff 0%,
+        #f5f3ff 30%,
+        #ecfeff 100%
+    );
+    min-height: 100vh;
+    font-family: Inter, Segoe UI, sans-serif;
+}
+
+/* =======================================================
+   NAVBAR
+======================================================= */
+
+.navbar {
+    background: linear-gradient(
+        90deg,
+        #4f46e5,
+        #7c3aed
+    ) !important;
+
+    box-shadow:
+        0 4px 20px rgba(79,70,229,.25);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: .5px;
+}
+
+/* =======================================================
+   MAIN CARDS
+======================================================= */
+
+.card {
+    border: none !important;
+
+    border-radius: 18px !important;
+
+    background: rgba(255,255,255,.92);
+
+    backdrop-filter: blur(12px);
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.08);
+}
+
+.card-header {
+    background: transparent !important;
+
+    border-bottom: 1px solid #edf2f7 !important;
+
+    font-weight: 600;
+}
+
+/* =======================================================
+   DATABASE LIST
+======================================================= */
+
+.list-group-item {
+    border: none !important;
+
+    border-bottom:
+        1px solid #f1f5f9 !important;
+
+    transition: .25s;
+}
+
+.list-group-item:hover {
+    background: #eef2ff;
+}
+
+.list-group-item.active {
+    background:
+        linear-gradient(
+            90deg,
+            #6366f1,
+            #8b5cf6
+        ) !important;
+
+    border: none !important;
+}
+
+/* =======================================================
+   BADGES
+======================================================= */
+
+#activeDatabase {
+    background:
+        linear-gradient(
+            90deg,
+            #2563eb,
+            #3b82f6
+        ) !important;
+
+    color: white;
+}
+
+#activeCollection {
+    background:
+        linear-gradient(
+            90deg,
+            #10b981,
+            #14b8a6
+        ) !important;
+
+    color: white;
+}
+
+/* =======================================================
+   BUTTONS
+======================================================= */
+
+.btn-outline-secondary {
+    border-radius: 10px;
+}
+
+.btn-outline-danger {
+    border-radius: 10px;
+}
+
+.btn-primary {
+    background:
+        linear-gradient(
+            90deg,
+            #4f46e5,
+            #7c3aed
+        );
+
+    border: none;
+}
+
+/* =======================================================
+   TABLE AREA
+======================================================= */
+
+#tableContainer {
+    min-height: 650px;
+    padding: 15px;
+}
+
+/* =======================================================
+   DOCUMENT CARDS
+======================================================= */
+
+.cards-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(550px,1fr)
+        );
+
+    gap: 20px;
+}
+
+.doc-card {
+
+    border-radius: 18px;
+
+    overflow: hidden;
+
+    background: white;
+
+    border: 2px solid #e2e8f0;
+
+    box-shadow:
+        0 8px 24px rgba(0,0,0,.08);
+
+    transition: .2s;
+}
+
+.doc-card:hover {
+
+    transform:
+        translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(0,0,0,.12);
+}
+
+.doc-card-header {
+
+    background:
+        linear-gradient(
+            90deg,
+            #4f46e5,
+            #7c3aed
+        );
+
+    color: white;
+
+    padding: 12px 18px;
+
+    font-weight: 600;
+
+    word-break: break-word;
+}
+
+.doc-card-meta {
+
+    background: #f8fafc;
+
+    padding: 10px 18px;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
+    font-size: 13px;
+
+    word-break: break-word;
+}
+
+.doc-card-body {
+
+    max-height: 500px;
+
+    overflow-y: auto;
+}
+
+.doc-json {
+
+    margin: 0;
+
+    padding: 18px;
+
+    background: #0f172a;
+
+    color: #e2e8f0;
+
+    font-family:
+        Consolas,
+        Monaco,
+        monospace;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    white-space: pre-wrap;
+
+    overflow-wrap: break-word;
+
+    word-break: break-word;
+}
+
+/* =======================================================
+   SCROLLBAR
+======================================================= */
+
+.doc-card-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.doc-card-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.doc-card-body::-webkit-scrollbar-thumb {
+    background: #6366f1;
+    border-radius: 20px;
+}
+
+/* =======================================================
+   PAGINATION
+======================================================= */
+
+.pagination .page-link {
+
+    border-radius: 10px;
+
+    margin: 0 3px;
+
+    border: none;
+
+    color: #4f46e5;
+}
+
+.pagination .page-link:hover {
+
+    background: #eef2ff;
+}
+
+.page-item.active .page-link {
+
+    background:
+        linear-gradient(
+            90deg,
+            #4f46e5,
+            #7c3aed
+        );
+}
+
+/* =======================================================
+   LOGIN
+======================================================= */
+
+.modal-content {
+
+    border-radius: 20px;
+
+    border: none;
+
+    box-shadow:
+        0 20px 50px rgba(0,0,0,.18);
+}
+
+/* =======================================================
+   RESPONSIVE
+======================================================= */
+
+@media(max-width:992px){
+
+    .cards-grid{
+
+        grid-template-columns:1fr;
+    }
+}
 
 .cards-grid {
     display: grid;
