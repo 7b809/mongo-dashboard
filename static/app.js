@@ -54,7 +54,7 @@ async function fetchJSON(url, options = {}) {
 
   if (!res.ok) {
     let msg = await res.text();
-    try { const j = JSON.parse(msg); msg = j.error || msg; } catch {}
+    try { const j = JSON.parse(msg); msg = j.error || msg; } catch { }
     throw new Error(msg || `HTTP ${res.status}`);
   }
 
@@ -180,46 +180,69 @@ function renderCollections(names) {
   });
 }
 
-function valueToCell(v) {
-  if (v === null || v === undefined) return "";
-  if (typeof v === "object") return `<code class="small text-break">${JSON.stringify(v)}</code>`;
-  return String(v);
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
-function buildTable(docs) {
+function buildCards(docs) {
+
   if (!docs.length) {
-    return `<div class="p-4 text-muted">No documents found.</div>`;
+    return `
+      <div class="p-4 text-muted">
+        No documents found.
+      </div>
+    `;
   }
 
-  const keySet = new Set();
-  docs.forEach(d => Object.keys(d).forEach(k => keySet.add(k)));
-  const keys = Array.from(keySet);
-  keys.sort((a, b) => (a === "_id" ? -1 : b === "_id" ? 1 : a.localeCompare(b)));
+  return `
+    <div class="cards-grid">
 
-  const thead = `
-    <thead class="table-light">
-      <tr>
-        ${keys.map(k => `<th scope="col" class="text-nowrap">${k}</th>`).join("")}
-        <th>Actions</th>
-      </tr>
-    </thead>
+      ${docs.map(doc => {
+
+    const prettyJson = JSON.stringify(doc, null, 2);
+
+    return `
+          <div class="doc-card">
+
+            <div class="doc-card-header d-flex justify-content-between">
+
+              <span>
+                ${state.collection}
+              </span>
+
+              <button
+                class="btn btn-sm btn-danger delete-doc"
+                data-id="${doc._id}">
+                Delete
+              </button>
+
+            </div>
+
+            <div class="doc-card-meta">
+
+              <strong>_id:</strong>
+              ${doc._id || "-"}
+
+            </div>
+
+            <div class="doc-card-body">
+
+              <pre class="doc-json">${escapeHtml(prettyJson)}</pre>
+
+            </div>
+
+          </div>
+        `;
+
+  }).join("")}
+
+    </div>
   `;
-
-  const tbody = `
-    <tbody>
-      ${docs.map(doc => `
-        <tr>
-          ${keys.map(k => `<td>${valueToCell(doc[k])}</td>`).join("")}
-          <td>
-            <button class="btn btn-sm btn-outline-danger delete-doc" data-id="${doc._id}">Delete</button>
-          </td>
-        </tr>
-      `).join("")}
-    </tbody>
-  `;
-
-  return `<table class="table table-sm table-hover mb-0">${thead}${tbody}</table>`;
 }
+
+
 
 async function loadDocs() {
   if (!state.db || !state.collection) {
@@ -239,7 +262,7 @@ async function loadDocs() {
     state.totalCount = data.total_count || 0;
     state.page = data.page || 1;
 
-    tableContainer.innerHTML = buildTable(docs);
+    tableContainer.innerHTML = buildCards(docs);
 
     pageIndicator.textContent = `Page ${state.page} of ${state.totalPages}`;
     countInfo.textContent = state.totalCount
@@ -256,7 +279,7 @@ async function loadDocs() {
 
 /* ================= DELETE LOGIC ================= */
 
-document.addEventListener("click", function(e) {
+document.addEventListener("click", function (e) {
   if (e.target.classList.contains("delete-doc")) {
     const id = e.target.dataset.id;
 

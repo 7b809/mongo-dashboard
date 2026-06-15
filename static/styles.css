@@ -2,3 +2,59 @@
 code.small {
   white-space: pre-wrap;
 }
+
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(500px,1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+.doc-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.doc-card-header {
+    background: #212529;
+    color: white;
+    padding: 10px 15px;
+    align-items: center;
+}
+
+.doc-card-meta {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 13px;
+}
+
+.doc-card-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.doc-json {
+    margin: 0;
+    padding: 15px;
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.doc-card-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.doc-card-body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
